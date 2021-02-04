@@ -20,8 +20,22 @@ const int chipSelect = 10;
 // initialise ID, will use it later to print it to file
 int id = 1;
 
+// control the push button on the proto board
+const int buttonPin = 1;
+int buttonPushCounter = 0;   // counter for the number of button presses
+int buttonState = 0;         // current state of the button
+int lastButtonState = 0;     // previous state of the button
+
+
+
 void setup() 
 {
+  // control the led on the proto board
+  pinMode(8, OUTPUT);
+
+  // initialize the pushbutton pin as an input:
+  pinMode(buttonPin, INPUT);
+  
   // Begin serial communication at a baud rate of 9600:
   Serial.begin(9600);
   // Setup sensor:
@@ -69,8 +83,31 @@ void setup()
 
 void loop() 
 { 
-  // Take measurements and write them onto the SD every 1 minute
-  delay(60000);
+
+// // read the pushbutton input pin:
+//  buttonState = digitalRead(buttonPin);
+//
+//  // compare the buttonState to its previous state
+//  if (buttonState != lastButtonState) {
+//    // if the state has changed, increment the counter
+//    if (buttonState == HIGH) {
+//      // if the current state is HIGH then the button went from off to on:
+//      buttonPushCounter++;
+//      Serial.println("on");
+//      Serial.print("number of button pushes: ");Serial.println(buttonPushCounter);
+//    } else {
+//      // if the current state is LOW then the button went from on to off:
+//      Serial.println("off");
+//    }
+//    // Delay a little bit to avoid bouncing
+//    delay(50);
+//  }
+//  // save the current state as the last state, for next time through the loop
+//  lastButtonState = buttonState;
+//  
+  
+  // Take measurements and write them onto the SD every 1 minute (55 sec + 5 sec of led light)
+  delay(55000);
   
   // Read the humidity (in %)
   float h = dht.readHumidity();
@@ -90,10 +127,14 @@ void loop()
 //  Serial.print("Temperature: ");
 //  Serial.print(t);
 //  Serial.print("\n");
+
+ // turn the red led on for 5 seconds and then write
+  digitalWrite(8, HIGH);
+  delay(5000);
   
   // write on the txt the temperature and humidity taken from the sensor every minute
   myFile = SD.open("data.txt", FILE_WRITE);
-
+  
   // if the file opened okay, write to it:
   if (myFile) {
   //Serial.print("Writing to file...");
@@ -102,6 +143,10 @@ void loop()
   // close the file:
   myFile.close();
 
+
+  // turn the red led off
+  digitalWrite(8, LOW);
+  
   // increase ID
   id ++;
   
