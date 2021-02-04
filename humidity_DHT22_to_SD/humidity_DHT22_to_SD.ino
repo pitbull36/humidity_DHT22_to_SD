@@ -9,36 +9,72 @@
 #define DHTPIN 2
 #define DHTTYPE DHT22
 
-File myFile; // file to write
+// this will be needed to keep track of the time and decide when to log data and turn on/off the LED
+// while still being able to check for the pressed button
+unsigned long previousMillis4Interval = 0; // to keep track of time
+unsigned long previousMillis4onoff = 0; // to keep track of time
+//unsigned long previousMillis4off = 0; // to keep track of time
+long ontime = 59000;               // milliseconds of on-time
+long interval = 60000;             // interval for writing data
+long offtime = 61000;              // milliseconds of off-time
 
-// Initialize DHT sensor for normal 16mhz Arduino:
+bool on = false;
+bool interv = false;
+
+// DHT SENSOR: Initialize DHT sensor for normal 16mhz Arduino:
 DHT dht = DHT(DHTPIN, DHTTYPE);
 
-// change this to match your SD shield or module, the CS pin of the SD module;
+// SD MOUDLE: change this to match your SD shield or module, the CS pin of the SD module
 const int chipSelect = 10;
 
-// initialise ID, will use it later to print it to file
-int id = 1;
-
-// control the push button on the proto board
+// PUSH BUTTON on the proto board
 const int buttonPin = 1;
-int buttonPushCounter = 0;   // counter for the number of button presses
-int buttonState = 0;         // current state of the button
-int lastButtonState = 0;     // previous state of the button
+const int debounceDelay = 10; // milliseconds to wait until stable
+
+// LEDs on the proto board
+const int ledPinRed = 8; // the number of the output pin
+const int ledPinButton = 7; // the number of the output pin
+
+// USEFUL VARIABLES: initialise ID, will use it later to print it to file
+int id = 1;
+bool flag = false;
+File myFile; // file to write in
+
+
+// DEBOUNCE FUNCTION
+boolean debounce(int pin)
+{
+ boolean state;
+ boolean previousState;
+ previousState = digitalRead(pin); // store switch state
+ for(int counter=0; counter < debounceDelay; counter++)
+ {
+ delay(1); // wait for 1 millisecond
+ state = digitalRead(pin); // read the pin
+ if( state != previousState)
+ {
+ counter = 0; // reset the counter if the state changes
+ previousState = state; // and save the current state
+ }
+ }
+ // here when the switch state has been stable longer than the debounce period
+ return state;
+}
 
 
 
 void setup() 
 {
-  // control the led on the proto board
-  pinMode(8, OUTPUT);
+  // LED on the proto board
+  pinMode(ledPinRed, OUTPUT);
+  pinMode(ledPinButton, OUTPUT);
 
-  // initialize the pushbutton pin as an input:
+  // PUSH BUTTON on the proto board as an input
   pinMode(buttonPin, INPUT);
   
   // Begin serial communication at a baud rate of 9600:
   Serial.begin(9600);
-  // Setup sensor:
+  // Setup DHT sensor:
   dht.begin();
 
   // initialise SD card
@@ -50,64 +86,53 @@ void setup()
   }
   Serial.println("initialization done.");
 
-  // initialise file with headers
+  // initialise data file with headers
   myFile = SD.open("data.txt", FILE_WRITE);
 
   // if the file opened okay, write to it:
   if (myFile) {
-  Serial.print("Writing to file...");
-  // write the headers every time the Arudino starts
-  myFile.print("ID");myFile.print(",");myFile.print("Temperature");myFile.print(",");myFile.println("Humidity");
-
+  Serial.print("Initialising data file...");
+  // write the headers every time the Arudino starts (ID, Temp, Hum, Flag)
+  myFile.print("ID");myFile.print(",");myFile.print("Temperature");myFile.print(",");myFile.print("Humidity");myFile.print(",");myFile.println("Flag");
   // close the file:
   myFile.close();
+  Serial.println("Done, all good!");
   }
 
-//  // re-open the file for reading:
-//  myFile = SD.open("test.txt");
+//  // Check if the file was written, by reading it
+//  myFile = SD.open("data.txt");
 //  if (myFile) {
-//    Serial.println("test.txt:");
+//      Serial.println("data.txt:");
 //
-//    // read from the file until there's nothing else in it:
+//    // read from the file until empty
 //    while (myFile.available()) {
 //      Serial.write(myFile.read());
 //    }
-//    // close the file:
+//    // close the file
 //    myFile.close();
 //    } else {
-//      // if the file didn't open, print an error:
-//      Serial.println("error opening test.txt");
+//      // if the file didn't open
+//      Serial.println("error opening the file");
 //    }
     
 }
 
 void loop() 
-{ 
+{
 
-// // read the pushbutton input pin:
-//  buttonState = digitalRead(buttonPin);
-//
-//  // compare the buttonState to its previous state
-//  if (buttonState != lastButtonState) {
-//    // if the state has changed, increment the counter
-//    if (buttonState == HIGH) {
-//      // if the current state is HIGH then the button went from off to on:
-//      buttonPushCounter++;
-//      Serial.println("on");
-//      Serial.print("number of button pushes: ");Serial.println(buttonPushCounter);
-//    } else {
-//      // if the current state is LOW then the button went from on to off:
-//      Serial.println("off");
-//    }
-//    // Delay a little bit to avoid bouncing
-//    delay(50);
-//  }
-//  // save the current state as the last state, for next time through the loop
-//  lastButtonState = buttonState;
-//  
   
-  // Take measurements and write them onto the SD every 1 minute (55 sec + 5 sec of led light)
-  delay(55000);
+  // READ THE BUTTON
+  if(debounce(buttonPin))
+   {
+   digitalWrite(ledPinButton, LOW);
+   } else {
+    digitalWrite(ledPinButton, HIGH);
+    flag = true;
+   }
+
+  // this is the current time
+  unsigned long currentMillis = millis();
+  //Serial.println(currentMillis - previousMillis4onoff);
   
   // Read the humidity (in %)
   float h = dht.readHumidity();
@@ -120,39 +145,74 @@ void loop()
     return;
   }
 
-//  // Debug on serial
-//  Serial.print("Humidity: ");
-//  Serial.print(h);
-//  Serial.print("%\n");
-//  Serial.print("Temperature: ");
-//  Serial.print(t);
-//  Serial.print("\n");
+  if((currentMillis - previousMillis4onoff >= interval) && (interv == false))
+  {    
+    interv = true;
+    //ledState = HIGH;  // turn it on
+    Serial.println("sono nel interval e scrivo...");
 
- // turn the red led on for 5 seconds and then write
-  digitalWrite(8, HIGH);
-  delay(5000);
-  
-  // write on the txt the temperature and humidity taken from the sensor every minute
-  myFile = SD.open("data.txt", FILE_WRITE);
-  
-  // if the file opened okay, write to it:
-  if (myFile) {
-  //Serial.print("Writing to file...");
-  myFile.print(id);myFile.print(",");myFile.print(t);myFile.print(",");myFile.println(h);
+    // write on the txt the temperature and humidity taken from the sensor every minute
+    myFile = SD.open("data.txt", FILE_WRITE);
+    
+    // if the file opened okay, write to it:
+    if (myFile) {
+    //Serial.print("Writing to file...");
 
-  // close the file:
-  myFile.close();
-
-
-  // turn the red led off
-  digitalWrite(8, LOW);
+      // now check if flag == true, that is, if the button was pressed to signal an event
+      // if there was an event, write 1 in the "flag" column
+      // else write 0
+      if (flag == true){
+        myFile.print(id);myFile.print(",");myFile.print(t);myFile.print(",");myFile.print(h);myFile.print(",");myFile.println(1);  
+        Serial.print(id);Serial.print(",");Serial.print(t);Serial.print(",");Serial.print(h);Serial.print(",");Serial.println(1); 
+        flag = false;
+        } 
+      else {
+        myFile.print(id);myFile.print(",");myFile.print(t);myFile.print(",");myFile.print(h);myFile.print(",");myFile.println(0);    
+        Serial.print(id);Serial.print(",");Serial.print(t);Serial.print(",");Serial.print(h);Serial.print(",");Serial.println(0);
+        }
   
-  // increase ID
-  id ++;
+    // close the file:
+    myFile.close();
+
+    // increase ID
+    id ++;
+
+    //previousMillis4onoff = currentMillis;   // Remember the time
+    
+    // turn the red led off
+    //digitalWrite(8, LOW);
+    
+    //digitalWrite(ledPin, ledState);    // Update the actual LED
+    }
+ }
+ 
+  if ((currentMillis - previousMillis4onoff >= ontime) && (on == false))
+  {
+   on = true;
+   Serial.println("sono nel ONON");
+   digitalWrite(ledPinRed, HIGH);
+    //  // Debug on serial
+    //  Serial.print("Humidity: ");
+    //  Serial.print(h);
+    //  Serial.print("%\n");
+    //  Serial.print("Temperature: ");
+    //  Serial.print(t);
+    //  Serial.print("\n");
+    //ledState = LOW;  // Turn it off
+
+    // turn the red led on
+    //digitalWrite(8, HIGH);
+    
+    //previousMillis4onoff = currentMillis;  // Remember the time
+    //digitalWrite(ledPin, ledState);  // Update the actual LED
+    }
+    
+  if ((currentMillis - previousMillis4onoff >= offtime)){
+  Serial.println("sono nel OFFOFF");
+  digitalWrite(ledPinRed, LOW);
+  previousMillis4onoff = currentMillis;  // Remember the time
+  interv = false;
+  on = false;
+  }
   
-  //Serial.println("done.");
-  } //else {
-  // if the file didn't open, print an error:
-  //Serial.println("error opening the file");
-  //}  
 }
