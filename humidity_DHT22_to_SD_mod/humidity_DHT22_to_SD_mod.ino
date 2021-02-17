@@ -52,7 +52,7 @@ bool debounce(int pin) {
       previousState = state; // and save the current state
     }
   }
-  // here when the switch state has been stable longer than the debounce period
+  // here when the button state has been stable longer than the debounce period
   return state;
 }
 
