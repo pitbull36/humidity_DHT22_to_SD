@@ -11,7 +11,7 @@
 #define DHTTYPE DHT22
 DHT dht = DHT(DHTPIN, DHTTYPE);
 
-// SD MOUDLE: change this to match the CS pin of the SD module
+// SD MODULE: change this to match the CS pin of the SD module
 const int chipSelect = 10;
 
 // PUSH BUTTON on the proto board
@@ -40,9 +40,9 @@ int id = 1;                                 // to later increase the ID on the l
 
 
 // DEBOUNCE FUNCTION to precisely state when the button was pressed
-boolean debounce(int pin) {
-  boolean state;
-  boolean previousState;
+bool debounce(int pin) {
+  bool state;
+  bool previousState;
   previousState = digitalRead(pin); // store switch state
   for (int counter = 0; counter < debounceDelay; counter++) {
     delay(1); // wait for 1 millisecond
