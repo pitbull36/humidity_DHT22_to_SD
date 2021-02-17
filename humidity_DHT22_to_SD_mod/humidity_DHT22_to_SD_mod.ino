@@ -43,7 +43,7 @@ int id = 1;                                 // to later increase the ID on the l
 bool debounce(int pin) {
   bool state;
   bool previousState;
-  previousState = digitalRead(pin); // store switch state
+  previousState = digitalRead(pin); // store button state
   for (int counter = 0; counter < debounceDelay; counter++) {
     delay(1); // wait for 1 millisecond
     state = digitalRead(pin); // read the pin
