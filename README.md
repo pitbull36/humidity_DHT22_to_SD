@@ -7,8 +7,8 @@ PIECES:
 - SD reader
 - DHT22 (or others) temperature and humidity sensor
 - a proto shield or:
-- - a button
-- - two LEDs
+  - a button
+  - two LEDs
 
 The wiring image shows how to wire the pieces together. 
 
